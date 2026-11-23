@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UniGL Spoofer</title>
+<style>
+:root{--bg:#fff;--fg:#1b1b1f;--card:#f1f0f4;--ac:#3b5bdb;--mut:#6b6b76;--bad:#c92a2a}
+@media(prefers-color-scheme:dark){:root{--bg:#111114;--fg:#e6e6ea;--card:#1d1d22;--ac:#8ea2ff;--mut:#9a9aa6;--bad:#ff8787}}
+*{box-sizing:border-box}body{margin:0;padding:16px 16px 80px;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,sans-serif}
+h1{font-size:20px;margin:4px 0 2px}h2{font-size:15px;margin:0 0 10px}.sub{color:var(--mut);font-size:13px;margin-bottom:14px}
+.card{background:var(--card);border-radius:16px;padding:14px;margin-bottom:14px}
+input,select,textarea,button{font:inherit;color:inherit;border-radius:10px;border:1px solid var(--mut);background:var(--bg);padding:8px 10px;max-width:100%}
+textarea{width:100%;min-height:260px;font:12px/1.4 ui-monospace,monospace}
+button{background:var(--ac);color:var(--bg);border:0;font-weight:600}button.ghost{background:transparent;color:var(--fg);border:1px solid var(--mut)}button.bad{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}.row>input{flex:1;min-width:140px}
+.t{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid #8884;flex-wrap:wrap}.t:first-of-type{border-top:0}
+.t b{word-break:break-all;font-size:14px}.msg{position:fixed;left:16px;right:16px;bottom:16px;background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:12px;display:none}
+</style></head><body>
+<h1>UniGL Spoofer</h1>
+<div class="sub">Changes apply the next time the game starts (force stop it first). The module must be enabled and Zygisk must be on.</div>
+
+<div class="card"><h2>Target games</h2><div id="targets"></div>
+ <div class="row"><input id="pkg" list="pkgs" placeholder="game package name" autocapitalize="off" autocomplete="off"><datalist id="pkgs"></datalist>
+ <select id="newprof"></select><button id="add">Add</button></div></div>
+
+<div class="card"><h2>Profiles</h2>
+ <div class="row"><select id="prof"></select><button class="ghost" id="reload">Load</button></div>
+ <textarea id="editor" spellcheck="false"></textarea>
+ <div class="row"><button id="save">Save profile</button><input id="newname" placeholder="new profile name" autocapitalize="off"><button class="ghost" id="create">Create</button></div></div>
+<div class="msg" id="msg"></div>
+<script>
+const DIR='/data/adb/unigl', RX_PKG=/^[A-Za-z0-9._]+$/, RX_NAME=/^[A-Za-z0-9_-]+$/;
+const $=id=>document.getElementById(id);
+function sh(cmd){return new Promise(res=>{
+  if(!window.ksu||!ksu.exec){res({errno:-1,stdout:'',stderr:'WebUI API not available (open from KernelSU / APatch / WebUI-X)'});return;}
+  const cb='_cb'+Date.now()+Math.floor(Math.random()*1e6);
+  window[cb]=(e,o,er)=>{delete window[cb];res({errno:e,stdout:o||'',stderr:er||''});};
+  try{ksu.exec(cmd,'{}',cb);}catch(e){delete window[cb];res({errno:-1,stdout:'',stderr:String(e)});}
+});}
+const b64=s=>btoa(unescape(encodeURIComponent(s)));
+const writeFile=(p,c)=>sh(`echo '${b64(c)}' | base64 -d > '${p}'`);
+let tmr;function toast(t){const m=$('msg');m.textContent=t;m.style.display='block';clearTimeout(tmr);tmr=setTimeout(()=>m.style.display='none',2600);}
+let profiles=[],targets=[];
+function parseTargets(t){return t.split('\n').map(l=>l.trim()).filter(l=>l&&l[0]!=='#'&&l.includes('=')).map(l=>{const i=l.indexOf('=');return[l.slice(0,i).trim(),l.slice(i+1).trim()]});}
+async function saveTargets(){
+  const body='# package=profile\n'+targets.map(([k,v])=>`${k}=${v}`).join('\n')+'\n';
+  const r=await writeFile(DIR+'/targets.conf',body);toast(r.errno?'Save failed':'Saved');}
+function opts(sel,val){sel.innerHTML=profiles.map(p=>`<option${p===val?' selected':''}>${p}</option>`).join('');}
+function renderTargets(){
+  const el=$('targets');el.innerHTML=targets.length?'':'<div class="sub">No games yet.</div>';
+  targets.forEach(([pkg,prof],i)=>{
+    const d=document.createElement('div');d.className='t';
+    d.innerHTML=`<b>${pkg}</b><span class="row" style="margin:0"><select></select><button class="ghost">Stop</button><button class="bad">Remove</button></span>`;
+    const s=d.querySelector('select');opts(s,prof);
+    s.onchange=()=>{targets[i][1]=s.value;saveTargets();};
+    const [b1,b2]=d.querySelectorAll('button');
+    b1.onclick=async()=>{await sh(`am force-stop '${pkg}'`);toast('Force stopped '+pkg);};
+    b2.onclick=()=>{targets.splice(i,1);saveTargets();renderTargets();};
+    el.appendChild(d);});
+}
+async function loadProfile(){const n=$('prof').value;if(!n)return;const r=await sh(`cat '${DIR}/profiles/${n}.conf'`);$('editor').value=r.stdout;}
+async function refresh(){
+  await sh(`mkdir -p '${DIR}/profiles'`);
+  const ls=await sh(`ls '${DIR}/profiles'`);
+  profiles=ls.stdout.split('\n').filter(f=>f.endsWith('.conf')).map(f=>f.slice(0,-5)).filter(n=>RX_NAME.test(n));
+  targets=parseTargets((await sh(`cat '${DIR}/targets.conf'`)).stdout);
+  opts($('newprof'));const keep=$('prof').value;opts($('prof'),keep);renderTargets();loadProfile();
+  const pk=await sh(`pm list packages -3 | sed 's/package://'`);
+  $('pkgs').innerHTML=pk.stdout.split('\n').filter(Boolean).sort().map(p=>`<option value="${p}">`).join('');
+}
+$('add').onclick=()=>{const p=$('pkg').value.trim(),f=$('newprof').value;
+  if(!RX_PKG.test(p)||!f){toast('Invalid package or profile');return;}
+  const e=targets.find(t=>t[0]===p);if(e)e[1]=f;else targets.push([p,f]);saveTargets();renderTargets();$('pkg').value='';};
+$('reload').onclick=loadProfile;$('prof').onchange=loadProfile;
+$('save').onclick=async()=>{const n=$('prof').value;if(!RX_NAME.test(n))return;
+  const r=await writeFile(`${DIR}/profiles/${n}.conf`,$('editor').value);toast(r.errno?'Save failed':'Profile saved');};
+$('create').onclick=async()=>{const n=$('newname').value.trim();if(!RX_NAME.test(n)){toast('Name: letters, digits, _ or -');return;}
+  await writeFile(`${DIR}/profiles/${n}.conf`,$('editor').value);$('newname').value='';await refresh();$('prof').value=n;loadProfile();toast('Profile created');};
+refresh();
+</script></body></html>

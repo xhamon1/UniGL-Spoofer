@@ -1,0 +1,3 @@
+build/
+module/zygisk/*.so
+*.zip
