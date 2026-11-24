@@ -61,7 +61,7 @@ Bundled device profiles (top of the AnTuTu Android ranking, October 2026, global
 Model numbers come from public listings (some from pre-release Geekbench entries), so double-check them if you can.
 Games may not know brand-new GPUs, so Adreno 840 profiles are the safest first choice.
 
-Device profiles cannot be edited or deleted. For anything else use **Custom** in the WebUI: create, edit and delete your own profiles
+Use **Profile specs** in the WebUI to see exactly what any profile changes. Device profiles cannot be edited or deleted. For anything else use **Custom profiles** in the WebUI: create, edit and delete your own profiles
 Every key is optional; an empty value leaves the real value untouched.
 Custom profiles live in `/data/adb/unigl/profiles/<name>.conf` and are never touched by module updates.
 
@@ -90,3 +90,7 @@ If there is no `target matched` line, check `targets.conf`, the denylist and the
 ## License
 
 MIT. `src/zygisk.hpp` follows the public Zygisk API v4 (0BSD, John Wu).
+
+## Author
+
+Amon, Telegram: [@xhamon](https://t.me/xhamon)

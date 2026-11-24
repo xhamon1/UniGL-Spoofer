@@ -14,6 +14,8 @@ button{background:var(--ac);color:var(--bg);border:0;font-weight:600}button.ghos
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}.row>input{flex:1;min-width:140px}
 .t{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid #8884;flex-wrap:wrap}.t:first-of-type{border-top:0}
 .t b{word-break:break-all;font-size:14px}.msg{position:fixed;left:16px;right:16px;bottom:16px;background:var(--fg);color:var(--bg);padding:10px 14px;border-radius:12px;display:none}
+.sp{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-top:1px solid #8884;font-size:14px}.sp:first-child{border-top:0}.sp span:first-child{color:var(--mut)}.sp span:last-child{text-align:right;word-break:break-word}
+.foot{text-align:center;color:var(--mut);font-size:13px;margin:6px 0 18px}.foot a{color:var(--ac)}
 .note{font-size:13px;color:var(--mut)}.note b{color:var(--fg)}.note p{margin:6px 0}
 </style></head><body>
 <h1>UniGL Spoofer</h1>
@@ -22,6 +24,10 @@ button{background:var(--ac);color:var(--bg);border:0;font-weight:600}button.ghos
 <div class="card"><h2>Target games</h2><div id="targets"></div>
  <div class="row"><input id="pkg" list="pkgs" placeholder="game package name" autocapitalize="off" autocomplete="off"><datalist id="pkgs"></datalist>
  <select id="newprof"></select><button id="add">Add</button></div></div>
+
+<div class="card" id="specscard"><h2>Profile specs</h2>
+ <div class="row" style="margin-top:0"><select id="specsel"></select></div>
+ <div id="specs" style="margin-top:10px"></div></div>
 
 <div class="card" id="customcard"><h2>Custom profiles</h2>
  <div class="row" style="margin-top:0"><select id="cprof"></select></div>
@@ -34,6 +40,7 @@ button{background:var(--ac);color:var(--bg);border:0;font-weight:600}button.ghos
 <p><b>Minimal</b> changes only the GPU strings (OpenGL ES renderer and vendor, Vulkan device name), the manufacturer and the model. Start here.</p>
 <p><b>Full</b> changes everything above and also the Vulkan vendor ID, brand, board, hardware and SoC model/manufacturer. Use it only if Minimal does not unlock the graphics settings. Changing more properties can make some games behave differently or crash.</p>
 <p><b>Custom</b> lets you write your own profile. Every key is optional; an empty value leaves the real value untouched.</p></div>
+<div class="foot">Author: Amon<br><a id="tg" href="https://t.me/xhamon">Telegram: @xhamon</a></div>
 <div class="msg" id="msg"></div>
 <script>
 const DIR='/data/adb/unigl', RX_PKG=/^[A-Za-z0-9._]+$/, RX_NAME=/^[A-Za-z0-9_-]+$/;
@@ -59,7 +66,7 @@ build_hardware=
 build_soc_model=
 build_soc_manufacturer=
 `;
-const NEW='__new__',CUSTOMOPT='__custom__';
+const NEW='__new__';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 function sh(cmd){return new Promise(res=>{
@@ -71,7 +78,27 @@ function sh(cmd){return new Promise(res=>{
 const b64=s=>btoa(unescape(encodeURIComponent(s)));
 const writeFile=(p,c)=>sh(`echo '${b64(c)}' | base64 -d > '${p}'`);
 let tmr;function toast(t){const m=$('msg');m.textContent=t;m.style.display='block';clearTimeout(tmr);tmr=setTimeout(()=>m.style.display='none',2600);}
+const LABELS=[['build_brand','Brand'],['build_manufacturer','Manufacturer'],['build_model','Model'],['build_device','Device codename'],['build_product','Product name'],['build_board','Board'],['build_hardware','Hardware'],['build_soc_model','SoC model'],['build_soc_manufacturer','SoC manufacturer'],['gl_vendor','OpenGL vendor'],['gl_renderer','OpenGL renderer'],['gl_version','OpenGL version'],['gl_extensions_append','Extra GL extensions'],['vk_device_name','Vulkan device name'],['vk_vendor_id','Vulkan vendor ID'],['vk_device_id','Vulkan device ID'],['vk_driver_version','Vulkan driver version']];
 let customs=[],targets=[],delArmed=false;
+function parseConf(t){const o={};t.split('\n').forEach(l=>{l=l.trim();if(!l||l[0]==='#')return;const i=l.indexOf('=');if(i<0)return;o[l.slice(0,i).trim()]=l.slice(i+1).trim();});return o;}
+async function showSpecs(id){
+  const el=$('specs');if(!id){el.innerHTML='';return;}
+  const r=await sh(`cat '${DIR}/profiles/${id}.conf'`);
+  if(r.errno||!r.stdout.trim()){el.innerHTML='<div class="note">Profile file not found.</div>';return;}
+  const o=parseConf(r.stdout);
+  const set=LABELS.filter(([k])=>o[k]),unset=LABELS.filter(([k])=>!o[k]);
+  el.innerHTML=(set.length?set.map(([k,l])=>`<div class="sp"><span>${l}</span><span>${esc(o[k])}</span></div>`).join(''):'<div class="note">This profile changes nothing.</div>')+
+    (unset.length?`<div class="note" style="margin-top:8px"><b>Not changed:</b> ${unset.map(([,l])=>l).join(', ')}</div>`:'');
+}
+function renderSpecSelect(keep){
+  const sel=$('specsel');
+  sel.innerHTML=BUILTIN.map(([id,l])=>`<option value="${id}">${esc(l)}</option>`).join('')+customs.map(n=>`<option value="${esc(n)}">Custom: ${esc(n)}</option>`).join('');
+  const all=BUILTIN.map(b=>b[0]).concat(customs);
+  sel.value=all.includes(keep)?keep:BUILTIN[1][0];
+  showSpecs(sel.value);
+}
+function openSpecs(id){renderSpecSelect(id);$('specscard').scrollIntoView({behavior:'smooth'});}
+$('specsel').onchange=()=>showSpecs($('specsel').value);
 function parseTargets(t){return t.split('\n').map(l=>l.trim()).filter(l=>l&&l[0]!=='#'&&l.includes('=')).map(l=>{const i=l.indexOf('=');return[l.slice(0,i).trim(),l.slice(i+1).trim()]});}
 async function saveTargets(){
   const body='# package=profile\n'+targets.map(([k,v])=>`${k}=${v}`).join('\n')+'\n';
@@ -80,17 +107,16 @@ function profileOptions(sel){
   let h=BUILTIN.map(([id,l])=>`<option value="${id}"${id===sel?' selected':''}>${esc(l)}</option>`).join('');
   h+=customs.map(n=>`<option value="${esc(n)}"${n===sel?' selected':''}>Custom: ${esc(n)}</option>`).join('');
   if(sel&&!BUILTIN_IDS.has(sel)&&!customs.includes(sel))h+=`<option value="${esc(sel)}" selected>(missing) ${esc(sel)}</option>`;
-  h+=`<option value="${CUSTOMOPT}">Custom...</option>`;
   return h;}
-function gotoCustom(){$('customcard').scrollIntoView({behavior:'smooth'});toast('Create or pick a custom profile below');}
 function renderTargets(){
   const el=$('targets');el.innerHTML=targets.length?'':'<div class="sub">No games yet.</div>';
   targets.forEach(([pkg,prof],i)=>{
     const d=document.createElement('div');d.className='t';
-    d.innerHTML=`<b>${esc(pkg)}</b><span class="row" style="margin:0"><select></select><button class="ghost">Stop</button><button class="bad">Remove</button></span>`;
+    d.innerHTML=`<b>${esc(pkg)}</b><span class="row" style="margin:0"><select></select><button class="ghost">Specs</button><button class="ghost">Stop</button><button class="bad">Remove</button></span>`;
     const s=d.querySelector('select');s.innerHTML=profileOptions(prof);
-    s.onchange=()=>{if(s.value===CUSTOMOPT){s.value=prof;gotoCustom();return;}targets[i][1]=s.value;saveTargets();};
-    const [b1,b2]=d.querySelectorAll('button');
+    s.onchange=()=>{targets[i][1]=s.value;saveTargets();};
+    const [bs,b1,b2]=d.querySelectorAll('button');
+    bs.onclick=()=>openSpecs(targets[i][1]);
     b1.onclick=async()=>{await sh(`am force-stop '${pkg}'`);toast('Force stopped '+pkg);};
     b2.onclick=()=>{targets.splice(i,1);saveTargets();renderTargets();};
     el.appendChild(d);});
@@ -113,13 +139,12 @@ async function refresh(keepCustom){
   customs=ls.stdout.split('\n').filter(f=>f.endsWith('.conf')).map(f=>f.slice(0,-5)).filter(n=>RX_NAME.test(n)&&!BUILTIN_IDS.has(n)).sort();
   targets=parseTargets((await sh(`cat '${DIR}/targets.conf'`)).stdout);
   const np=$('newprof');np.innerHTML=profileOptions(BUILTIN[1][0]);
-  np.onchange=()=>{if(np.value===CUSTOMOPT){np.value=BUILTIN[1][0];gotoCustom();}};
-  renderTargets();renderCustomSelect(keepCustom);
+  renderTargets();renderCustomSelect(keepCustom);renderSpecSelect($('specsel').value);
   const pk=await sh(`pm list packages -3 | sed 's/package://'`);
   $('pkgs').innerHTML=pk.stdout.split('\n').filter(Boolean).sort().map(p=>`<option value="${esc(p)}">`).join('');
 }
 $('add').onclick=()=>{const p=$('pkg').value.trim(),f=$('newprof').value;
-  if(!RX_PKG.test(p)||!f||f===CUSTOMOPT){toast('Invalid package or profile');return;}
+  if(!RX_PKG.test(p)||!f){toast('Invalid package or profile');return;}
   const e=targets.find(t=>t[0]===p);if(e)e[1]=f;else targets.push([p,f]);saveTargets();renderTargets();$('pkg').value='';};
 $('cprof').onchange=onCustomChange;
 $('save').onclick=async()=>{
@@ -137,5 +162,6 @@ $('del').onclick=async()=>{
   const before=targets.length;targets=targets.filter(t=>t[1]!==n);
   if(targets.length!==before)await saveTargets();
   toast('Profile deleted'+(targets.length!==before?' (games using it were removed)':''));await refresh();};
+$('tg').onclick=e=>{e.preventDefault();sh("am start -a android.intent.action.VIEW -d 'https://t.me/xhamon'");};
 refresh();
 </script></body></html>
