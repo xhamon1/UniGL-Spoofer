@@ -41,27 +41,29 @@ done
 4. Make sure the game is **not** on a denylist / unmount list, otherwise Zygisk will not inject the module.
 
 The config lives in `/data/adb/unigl/` (`targets.conf` and `profiles/*.conf`, editable by hand).
-Bundled device profiles (top 10 of the AnTuTu Android ranking, October 2026, global data):
+Bundled device profiles (top of the AnTuTu Android ranking, October 2026, global data). Every device comes in two flavors:
 
-| # | Device | Model | GPU | Profile |
-|---|---|---|---|---|
-| 1 | HONOR Magic9 Pro Max | WKL-AN20 | Adreno 850 | `honor-magic9-pro-max` |
-| 2 | RedMagic 11 Pro | NX809J | Adreno 840 | `redmagic-11-pro` |
-| 3 | POCO F9 Ultra | 26077PC53G | Adreno 840 | `poco-f9-ultra` |
-| 4 | iQOO 15 | I2501 | Adreno 840 | `iqoo-15` |
-| 5 | HONOR WIN | not verified, no profile | Adreno 840 | - |
-| 6 | OnePlus 15 | CPH2747 | Adreno 840 | `oneplus-15` |
-| 7 | Xiaomi 17 Ultra | 2512BPNDAG | Adreno 840 | `xiaomi-17-ultra` |
-| 8 | POCO F8 Ultra | 25102PCBEG | Adreno 840 | `poco-f8-ultra` |
-| 9 | OPPO Find X9 Ultra | CPH2841 | Adreno 840 | `oppo-find-x9-ultra` |
-| 10 | Galaxy S26 Ultra | SM-S948B | Adreno 840 | `galaxy-s26-ultra` |
+- **Minimal**: GPU strings (OpenGL ES renderer/vendor, Vulkan device name), manufacturer and model only. Start here.
+- **Full**: everything in Minimal plus Vulkan vendor ID, brand, board, hardware and SoC model/manufacturer.
+
+| # | Device | Model | GPU |
+|---|---|---|---|
+| 1 | HONOR Magic9 Pro Max | WKL-AN20 | Adreno 850 |
+| 2 | RedMagic 11 Pro | NX809J | Adreno 840 |
+| 3 | POCO F9 Ultra | 26077PC53G | Adreno 840 |
+| 4 | iQOO 15 | I2501 | Adreno 840 |
+| 5 | OnePlus 15 | CPH2747 | Adreno 840 |
+| 6 | Xiaomi 17 Ultra | 2512BPNDAG | Adreno 840 |
+| 7 | POCO F8 Ultra | 25102PCBEG | Adreno 840 |
+| 8 | OPPO Find X9 Ultra | CPH2841 | Adreno 840 |
+| 9 | Samsung S26 Ultra | SM-S948B | Adreno 840 |
 
 Model numbers come from public listings (some from pre-release Geekbench entries), so double-check them if you can.
-Games may not know brand-new GPUs, so Adreno 840 profiles are the safest first choice. There is also a `template` profile.
+Games may not know brand-new GPUs, so Adreno 840 profiles are the safest first choice.
 
-Keep profiles minimal. Start with GPU strings + manufacturer + model only, and add more keys
-(brand, device, board, hardware, soc) only if the game still refuses to unlock the settings.
-Changing too many properties can make a game take the wrong code path and crash.
+Device profiles cannot be edited or deleted. For anything else use **Custom** in the WebUI: create, edit and delete your own profiles
+(you can start from any device profile with "Fill from device"). Every key is optional; an empty value leaves the real value untouched.
+Custom profiles live in `/data/adb/unigl/profiles/<name>.conf` and are never touched by module updates.
 
 ## Limitations (v0.1)
 

@@ -1,6 +1,6 @@
 id=unigl_spoofer
 name=UniGL Spoofer
-version=v0.1.2
-versionCode=3
+version=v0.1.3
+versionCode=4
 author=Amon
 description=Spoof GPU (GLES/Vulkan) and device info per app to unlock higher graphics settings. Works with any Zygisk implementation. Configure via WebUI.

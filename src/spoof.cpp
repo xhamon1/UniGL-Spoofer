@@ -58,6 +58,7 @@ const char *prop_override(const char *name) {
         return nullptr;
     }
     if (!strcmp(name, "ro.hardware")) return nz(g_p.b_hardware);
+    if (!strcmp(name, "ro.board.platform")) return nz(g_p.b_board);
     if (!strcmp(name, "ro.soc.model")) return nz(g_p.b_soc_model);
     if (!strcmp(name, "ro.soc.manufacturer")) return nz(g_p.b_soc_manufacturer);
     return nullptr;
