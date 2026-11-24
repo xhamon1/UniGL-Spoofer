@@ -51,3 +51,18 @@ jobs:
           name: UniGL Spoofer ${{ github.ref_name }}
           generate_release_notes: true
           files: ${{ steps.pkg.outputs.name }}
+
+      - name: Update update.json for root manager notifications (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VER=$(grep '^version=' module/module.prop | cut -d= -f2)
+          CODE=$(grep '^versionCode=' module/module.prop | cut -d= -f2)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          printf '{\n  "version": "%s",\n  "versionCode": %s,\n  "zipUrl": "https://github.com/%s/releases/download/%s/UniGL-Spoofer-%s.zip",\n  "changelog": "https://raw.githubusercontent.com/%s/main/CHANGELOG.md"\n}\n' \
+            "$VER" "$CODE" "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" "$VER" "$GITHUB_REPOSITORY" > update.json
+          git add update.json
+          git diff --cached --quiet || git commit -m "Update update.json for $VER"
+          git push origin main

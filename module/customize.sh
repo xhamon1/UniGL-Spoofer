@@ -27,5 +27,5 @@ cp -f "$MODPATH"/defaults/profiles/*.conf "$CONF/profiles/"
 chmod 0755 "$CONF" "$CONF/profiles"
 chmod 0644 "$CONF"/targets.conf "$CONF"/profiles/*.conf
 
-ui_print "- Requires Zygisk"
-ui_print "- Open the module's WebUI to pick the game + profile, then reboot once"
+ui_print "- Requires Zygisk to be enabled"
+ui_print "- Reboot, then open the module's WebUI to add an app and pick a profile"

@@ -19,10 +19,10 @@ button{background:var(--ac);color:var(--bg);border:0;font-weight:600}button.ghos
 .note{font-size:13px;color:var(--mut)}.note b{color:var(--fg)}.note p{margin:6px 0}
 </style></head><body>
 <h1>UniGL Spoofer</h1>
-<div class="sub">Changes apply the next time the game starts (force stop it first). The module must be enabled and Zygisk must be on.</div>
+<div class="sub">Changes apply the next time the app starts (force stop it first). The module must be enabled and Zygisk must be on.</div>
 
-<div class="card"><h2>Target games</h2><div id="targets"></div>
- <div class="row"><input id="pkg" list="pkgs" placeholder="game package name" autocapitalize="off" autocomplete="off"><datalist id="pkgs"></datalist>
+<div class="card"><h2>Target apps</h2><div id="targets"></div>
+ <div class="row"><input id="pkg" list="pkgs" placeholder="app package name" autocapitalize="off" autocomplete="off"><datalist id="pkgs"></datalist>
  <select id="newprof"></select><button id="add">Add</button></div></div>
 
 <div class="card" id="specscard"><h2>Profile specs</h2>
@@ -37,9 +37,10 @@ button{background:var(--ac);color:var(--bg);border:0;font-weight:600}button.ghos
  <div class="note" style="margin-top:8px">Device profiles cannot be edited or deleted. Only custom profiles can.</div></div>
 
 <div class="card note"><h2>Full or Minimal?</h2>
-<p><b>Minimal</b> changes only the GPU strings (OpenGL ES renderer and vendor, Vulkan device name), the manufacturer and the model. Start here.</p>
-<p><b>Full</b> changes everything above and also the Vulkan vendor ID, brand, board, hardware and SoC model/manufacturer. Use it only if Minimal does not unlock the graphics settings. Changing more properties can make some games behave differently or crash.</p>
-<p><b>Custom</b> lets you write your own profile. Every key is optional; an empty value leaves the real value untouched.</p></div>
+<p><b>Minimal</b> changes only the GPU strings (OpenGL ES renderer and vendor, Vulkan device name), the manufacturer, and the model. Start here.</p>
+<p><b>Full</b> changes everything Minimal does, plus the Vulkan vendor ID, brand, board, hardware, and SoC model/manufacturer. Use it only if Minimal does not unlock the graphics settings. Changing more properties can make some apps behave differently or crash.</p>
+<p>Sometimes apps need Full or Minimal.<br>If your choice doesn't work or the app force closes, try the other one.<br>For example, Monster Hunter Outlanders only needs the GPU strings, manufacturer, and model, which is Minimal.</p>
+<p><b>Custom</b> lets you write your own profile. Every key is optional, and an empty value leaves the real value untouched.</p></div>
 <div class="foot">Author: Amon<br><a id="tg" href="https://t.me/xhamon">Telegram: @xhamon</a></div>
 <div class="msg" id="msg"></div>
 <script>
@@ -109,7 +110,7 @@ function profileOptions(sel){
   if(sel&&!BUILTIN_IDS.has(sel)&&!customs.includes(sel))h+=`<option value="${esc(sel)}" selected>(missing) ${esc(sel)}</option>`;
   return h;}
 function renderTargets(){
-  const el=$('targets');el.innerHTML=targets.length?'':'<div class="sub">No games yet.</div>';
+  const el=$('targets');el.innerHTML=targets.length?'':'<div class="sub">No apps yet.</div>';
   targets.forEach(([pkg,prof],i)=>{
     const d=document.createElement('div');d.className='t';
     d.innerHTML=`<b>${esc(pkg)}</b><span class="row" style="margin:0"><select></select><button class="ghost">Specs</button><button class="ghost">Stop</button><button class="bad">Remove</button></span>`;
@@ -145,7 +146,7 @@ async function refresh(keepCustom){
 }
 $('add').onclick=()=>{const p=$('pkg').value.trim(),f=$('newprof').value;
   if(!RX_PKG.test(p)||!f){toast('Invalid package or profile');return;}
-  if(targets.some(t=>t[0].toLowerCase()===p.toLowerCase())){toast('This game is already in the list');return;}
+  if(targets.some(t=>t[0].toLowerCase()===p.toLowerCase())){toast('This app is already in the list');return;}
   targets.push([p,f]);saveTargets();renderTargets();$('pkg').value='';};
 $('cprof').onchange=onCustomChange;
 $('save').onclick=async()=>{
@@ -162,7 +163,7 @@ $('del').onclick=async()=>{
   await sh(`rm -f '${DIR}/profiles/${n}.conf'`);
   const before=targets.length;targets=targets.filter(t=>t[1]!==n);
   if(targets.length!==before)await saveTargets();
-  toast('Profile deleted'+(targets.length!==before?' (games using it were removed)':''));await refresh();};
+  toast('Profile deleted'+(targets.length!==before?' (apps using it were removed)':''));await refresh();};
 $('tg').onclick=e=>{e.preventDefault();sh("am start -a android.intent.action.VIEW -d 'https://t.me/xhamon'");};
 refresh();
 </script></body></html>

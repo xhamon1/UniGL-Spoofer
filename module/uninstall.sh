@@ -1,3 +1,3 @@
 #!/system/bin/sh
-# Config in /data/adb/unigl is kept on purpose (your profiles). Remove it manually if unwanted.
+# Your settings in /data/adb/unigl are kept on purpose. Delete that folder manually if you do not want them.
 exit 0
