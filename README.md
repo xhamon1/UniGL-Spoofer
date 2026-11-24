@@ -5,8 +5,9 @@ unlock higher graphics settings. All code is written from scratch.
 
 **Compatibility:** works with any Zygisk implementation. Android 8.0+, arm64-v8a / x86_64.
 
-> Status: **v0.1, experimental.** The source passes syntax checks but has not been tested on a device yet.
-> Please report results (logcat tag `UniGL`) via Issues.
+<p align="center"><img src="docs/webui.png" alt="UniGL Spoofer WebUI" width="320"></p>
+
+> Status: experimental. Please report problems via Issues.
 
 ## What gets spoofed
 
@@ -16,22 +17,6 @@ unlock higher graphics settings. All code is written from scratch.
 | Vulkan `deviceName`, `vendorID`, `deviceID`, `driverVersion` | hook `vkGetPhysicalDeviceProperties(2/2KHR)` + `vkGetInstanceProcAddr` |
 | `android.os.Build` (MODEL, BRAND, MANUFACTURER, DEVICE, PRODUCT, BOARD, HARDWARE, SOC_*) | JNI static fields |
 | `ro.product.*`, `ro.hardware`, `ro.soc.*` | hook `__system_property_get` |
-
-## Build
-
-Push to GitHub and GitHub Actions (`.github/workflows/build.yml`) builds the module zip.
-Create a release with a tag: `git tag v0.1.0 && git push --tags`.
-
-Local build (requires the Android NDK):
-
-```sh
-for abi in arm64-v8a x86_64; do
-  cmake -S . -B build/$abi -G Ninja -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
-        -DANDROID_ABI=$abi -DANDROID_PLATFORM=android-26 -DANDROID_STL=c++_static -DCMAKE_BUILD_TYPE=Release
-  cmake --build build/$abi && mkdir -p module/zygisk && cp build/$abi/libunigl.so module/zygisk/$abi.so
-done
-(cd module && zip -r9 ../UniGL-Spoofer.zip .)
-```
 
 ## Usage
 
@@ -81,11 +66,6 @@ Custom profiles live in `/data/adb/unigl/profiles/<name>.conf` and are never tou
 - **A game keeps crashing and you cannot open the WebUI:** run
   `su -c "rm /data/adb/unigl/targets.conf"` (or create the file `/data/adb/modules/unigl_spoofer/disable`) and reboot.
   The module only touches the games you listed, so it cannot cause a boot loop.
-
-## Debugging
-
-`adb logcat -s UniGL` shows `target matched: <package>` followed by `installed: prop=.. gl=.. vk=.. hooks=..`.
-If there is no `target matched` line, check `targets.conf`, the denylist and the Zygisk status.
 
 ## License
 
