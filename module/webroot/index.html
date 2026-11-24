@@ -24,12 +24,11 @@ button{background:var(--ac);color:var(--bg);border:0;font-weight:600}button.ghos
  <select id="newprof"></select><button id="add">Add</button></div></div>
 
 <div class="card" id="customcard"><h2>Custom profiles</h2>
- <div class="row" style="margin-top:0"><select id="cprof"></select>
- <select id="fillsrc"></select><button class="ghost" id="fill">Fill from device</button></div>
+ <div class="row" style="margin-top:0"><select id="cprof"></select></div>
  <div class="row"><input id="cname" placeholder="new profile name (letters, digits, _ or -)" autocapitalize="off"></div>
  <textarea id="editor" spellcheck="false"></textarea>
  <div class="row"><button id="save">Save</button><button class="bad" id="del">Delete</button></div>
- <div class="note" style="margin-top:8px">Device profiles above cannot be edited or deleted. Only custom profiles can.</div></div>
+ <div class="note" style="margin-top:8px">Device profiles cannot be edited or deleted. Only custom profiles can.</div></div>
 
 <div class="card note"><h2>Full or Minimal?</h2>
 <p><b>Minimal</b> changes only the GPU strings (OpenGL ES renderer and vendor, Vulkan device name), the manufacturer and the model. Start here.</p>
@@ -100,7 +99,6 @@ function renderCustomSelect(keep){
   const c=$('cprof');
   c.innerHTML=`<option value="${NEW}">New profile...</option>`+customs.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
   c.value=(keep&&customs.includes(keep))?keep:NEW;
-  $('fillsrc').innerHTML=BUILTIN.map(([id,l])=>`<option value="${id}">${esc(l)}</option>`).join('');
   onCustomChange();
 }
 async function onCustomChange(){
@@ -124,7 +122,6 @@ $('add').onclick=()=>{const p=$('pkg').value.trim(),f=$('newprof').value;
   if(!RX_PKG.test(p)||!f||f===CUSTOMOPT){toast('Invalid package or profile');return;}
   const e=targets.find(t=>t[0]===p);if(e)e[1]=f;else targets.push([p,f]);saveTargets();renderTargets();$('pkg').value='';};
 $('cprof').onchange=onCustomChange;
-$('fill').onclick=async()=>{const id=$('fillsrc').value;$('editor').value=(await sh(`cat '${DIR}/profiles/${id}.conf'`)).stdout;toast('Filled from '+id);};
 $('save').onclick=async()=>{
   let n=$('cprof').value;
   if(n===NEW){n=$('cname').value.trim();

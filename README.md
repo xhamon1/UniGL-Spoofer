@@ -62,7 +62,7 @@ Model numbers come from public listings (some from pre-release Geekbench entries
 Games may not know brand-new GPUs, so Adreno 840 profiles are the safest first choice.
 
 Device profiles cannot be edited or deleted. For anything else use **Custom** in the WebUI: create, edit and delete your own profiles
-(you can start from any device profile with "Fill from device"). Every key is optional; an empty value leaves the real value untouched.
+Every key is optional; an empty value leaves the real value untouched.
 Custom profiles live in `/data/adb/unigl/profiles/<name>.conf` and are never touched by module updates.
 
 ## Limitations (v0.1)
