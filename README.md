@@ -7,8 +7,6 @@ unlock higher graphics settings. All code is written from scratch.
 
 <p align="center"><img src="docs/webui.png" alt="UniGL Spoofer WebUI" width="320"></p>
 
-> Status: experimental. Please report problems via Issues.
-
 ## What gets spoofed
 
 | Area | Method |
