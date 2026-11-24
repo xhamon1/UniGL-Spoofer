@@ -194,9 +194,14 @@ __attribute__((noinline)) void *h_dlopen_ext(const char *file, int flags, const 
     return r;
 }
 
+thread_local bool t_in_dlsym = false;
+
 __attribute__((noinline)) void *h_dlsym(void *handle, const char *sym) {
     const void *caller = __builtin_return_address(0);
+    if (t_in_dlsym) return l_dlsym ? l_dlsym(handle, sym, caller) : real_dlsym(handle, sym);
+    t_in_dlsym = true;
     void *r = l_dlsym ? l_dlsym(handle, sym, caller) : real_dlsym(handle, sym);
+    struct Reset { ~Reset() { t_in_dlsym = false; } } reset;
     if (!r || !sym) return r;
     if (!strcmp(sym, "glGetString")) { if (!o_gl) o_gl = (gl_get_string_fn)r; return (void *)h_gl_get_string; }
     if (!strcmp(sym, "eglGetProcAddress")) { if (!o_egl_gpa) o_egl_gpa = (egl_gpa_fn)r; return (void *)h_egl_gpa; }
@@ -236,7 +241,7 @@ void spoof_java(JNIEnv *env) {
 
 GotHook g_table[16];
 size_t g_table_n = 0;
-void add(const char *name, void *fn) { g_table[g_table_n++] = {name, fn}; }
+void add(const char *name, void *fn, int scope = 0) { g_table[g_table_n++] = {name, fn, scope}; }
 
 }  // namespace
 
@@ -272,9 +277,14 @@ void spoof_install(const Profile &p, JNIEnv *env) {
         if (o_vk_gipa) add("vkGetInstanceProcAddr", (void *)h_vk_gipa);
     }
     add("dlsym", (void *)h_dlsym);
-    add("dlopen", (void *)h_dlopen);
-    add("android_dlopen_ext", (void *)h_dlopen_ext);
+    add("dlopen", (void *)h_dlopen, 1);
+    add("android_dlopen_ext", (void *)h_dlopen_ext, 1);
 
+    // Safety net: if our own imports were ever redirected, hooking again would recurse forever.
+    if (real_dlsym == (dlsym_fn)h_dlsym || real_dlopen == (dlopen_fn)h_dlopen) {
+        LOGI("self-hook detected, aborting install");
+        return;
+    }
     got_hook_init(g_table, g_table_n, (void *)&spoof_install);
     got_hook_apply();
     LOGI("installed: prop=%d gl=%d vk=%d hooks=%zu", want_prop, want_gl, want_vk, g_table_n);
