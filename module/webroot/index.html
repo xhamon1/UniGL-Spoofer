@@ -145,7 +145,8 @@ async function refresh(keepCustom){
 }
 $('add').onclick=()=>{const p=$('pkg').value.trim(),f=$('newprof').value;
   if(!RX_PKG.test(p)||!f){toast('Invalid package or profile');return;}
-  const e=targets.find(t=>t[0]===p);if(e)e[1]=f;else targets.push([p,f]);saveTargets();renderTargets();$('pkg').value='';};
+  if(targets.some(t=>t[0].toLowerCase()===p.toLowerCase())){toast('This game is already in the list');return;}
+  targets.push([p,f]);saveTargets();renderTargets();$('pkg').value='';};
 $('cprof').onchange=onCustomChange;
 $('save').onclick=async()=>{
   let n=$('cprof').value;
