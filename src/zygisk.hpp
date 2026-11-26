@@ -1,12 +1,3 @@
-/*
- * Zygisk module API v4 (public interface).
- *
- * Re-typed from the public API v4 header published by John "topjohnwu" Wu
- * (0BSD, https://github.com/topjohnwu/zygisk-module-sample). The struct layouts
- * below are the ABI contract with every Zygisk implementation
- * (Magisk, Zygisk Next, ReZygisk, BRZygisk ...). Do not reorder members.
- * If you prefer, replace this file with the upstream v4 header verbatim.
- */
 #pragma once
 
 #include <jni.h>
@@ -71,8 +62,7 @@ template <class T> void entry_impl(api_table *, JNIEnv *);
 
 enum Option : int {
     FORCE_DENYLIST_UNMOUNT = 0,
-    // dlclose the module library after post[XXX]Specialize.
-    // MUST NOT be enabled after hooking any function in the process.
+
     DLCLOSE_MODULE_LIBRARY = 1,
 };
 
@@ -129,10 +119,10 @@ struct api_table {
     void (*pltHookRegister)(dev_t, ino_t, const char *, void *, void **);
     bool (*exemptFd)(int);
     bool (*pltHookCommit)();
-    int (*connectCompanion)(void * /* impl */);
-    void (*setOption)(void * /* impl */, Option);
-    int (*getModuleDir)(void * /* impl */);
-    uint32_t (*getFlags)(void * /* impl */);
+    int (*connectCompanion)(void * );
+    void (*setOption)(void * , Option);
+    int (*getModuleDir)(void * );
+    uint32_t (*getFlags)(void * );
 };
 
 template <class T>
@@ -146,7 +136,7 @@ void entry_impl(api_table *table, JNIEnv *env) {
     m->onLoad(&api, env);
 }
 
-} // namespace internal
+}
 
 inline int Api::connectCompanion() {
     return tbl->connectCompanion ? tbl->connectCompanion(tbl->impl) : -1;
@@ -173,7 +163,7 @@ inline bool Api::pltHookCommit() {
     return tbl->pltHookCommit != nullptr && tbl->pltHookCommit();
 }
 
-} // namespace zygisk
+}
 
 extern "C" {
 [[gnu::visibility("default"), maybe_unused]]

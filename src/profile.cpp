@@ -33,7 +33,7 @@ char *trim(char *s) {
     return s;
 }
 
-} // namespace
+}
 
 bool profile_parse(const char *text, Profile *p) {
     memset(p, 0, sizeof(*p));

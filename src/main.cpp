@@ -1,10 +1,3 @@
-// UniGL Spoofer - Zygisk module entry point + root companion.
-//
-// Flow:
-//   preAppSpecialize : ask the root companion "is this package a target?" and fetch its profile
-//   postAppSpecialize: parse the profile and install the spoofing hooks
-// Only the public Zygisk API v4 (connectCompanion / pre+postAppSpecialize / setOption) is
-// used, so it works with every implementation that supports module API v4.
 #include "profile.h"
 #include "spoof.h"
 #include "zygisk.hpp"
@@ -48,7 +41,6 @@ bool write_all(int fd, const void *buf, size_t n) {
     return true;
 }
 
-// ------------------------------------------------------------------ companion (root)
 bool valid_chars(const char *s, bool allow_dot) {
     if (!*s) return false;
     for (; *s; ++s) {
@@ -60,7 +52,6 @@ bool valid_chars(const char *s, bool allow_dot) {
     return true;
 }
 
-// targets.conf: one "package=profile" per line, '#' comments
 bool lookup_profile_name(const char *pkg, char *out, size_t cap) {
     char path[128];
     snprintf(path, sizeof(path), "%s/targets.conf", kConfDir);
@@ -113,7 +104,6 @@ void companion_handler(int fd) {
     write_all(fd, blob, n);
 }
 
-// ------------------------------------------------------------------ module (app process)
 class UniGLModule : public zygisk::ModuleBase {
 public:
     void onLoad(zygisk::Api *api, JNIEnv *env) override {
@@ -122,7 +112,7 @@ public:
     }
 
     void preAppSpecialize(zygisk::AppSpecializeArgs *args) override {
-        // isolated processes never render, skip them
+
         if ((args->uid % 100000) >= 90000) { unload(); return; }
 
         char pkg[256] = {0};
@@ -130,7 +120,7 @@ public:
             const char *s = env_->GetStringUTFChars(args->nice_name, nullptr);
             if (s) {
                 size_t i = 0;
-                for (; s[i] && s[i] != ':' && i < sizeof(pkg) - 1; ++i) pkg[i] = s[i];  // strip ":service"
+                for (; s[i] && s[i] != ':' && i < sizeof(pkg) - 1; ++i) pkg[i] = s[i];
                 env_->ReleaseStringUTFChars(args->nice_name, s);
             }
         }
@@ -167,7 +157,7 @@ private:
     char blob_[kMaxBlob] = {0};
 };
 
-}  // namespace
+}
 
 REGISTER_ZYGISK_MODULE(UniGLModule)
 REGISTER_ZYGISK_COMPANION(companion_handler)

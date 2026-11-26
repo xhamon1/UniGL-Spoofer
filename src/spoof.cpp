@@ -27,7 +27,6 @@ typedef void *(*ldr_dlsym_fn)(void *, const char *, const void *caller);
 typedef void *(*vk_gipa_fn)(void *, const char *);
 typedef void (*vk_props_fn)(void *, void *);
 
-// Taken from this module's own (unpatched) imports => always the real functions.
 dlsym_fn real_dlsym = (dlsym_fn)&dlsym;
 dlopen_fn real_dlopen = (dlopen_fn)&dlopen;
 
@@ -44,10 +43,9 @@ vk_props_fn o_vk_props, o_vk_props2, o_vk_props2khr;
 
 const char *nz(const char *s) { return s[0] ? s : nullptr; }
 
-// ---------------------------------------------------------------- system properties
 const char *prop_override(const char *name) {
     if (!name) return nullptr;
-    if (!strncmp(name, "ro.product.", 11)) {  // ro.product.model, ro.product.vendor.model, ...
+    if (!strncmp(name, "ro.product.", 11)) {
         const char *last = strrchr(name, '.') + 1;
         if (!strcmp(last, "model")) return nz(g_p.b_model);
         if (!strcmp(last, "brand")) return nz(g_p.b_brand);
@@ -75,7 +73,6 @@ int h_prop_get(const char *name, char *value) {
     return o_prop ? o_prop(name, value) : 0;
 }
 
-// ---------------------------------------------------------------- OpenGL ES / EGL
 void resolve_gl() {
     if (void *h = real_dlopen("libGLESv2.so", RTLD_NOW))
         o_gl = (gl_get_string_fn)real_dlsym(h, "glGetString");
@@ -86,7 +83,7 @@ const unsigned char *ext_with_append(const unsigned char *orig) {
     static const unsigned char *last = nullptr;
     static char *buf = nullptr;
     pthread_mutex_lock(&m);
-    if (orig != last) {  // old buffers are intentionally leaked: other threads may still read them
+    if (orig != last) {
         size_t a = strlen((const char *)orig), b = strlen(g_p.gl_ext_append);
         buf = (char *)malloc(a + b + 2);
         memcpy(buf, orig, a);
@@ -102,7 +99,7 @@ const unsigned char *ext_with_append(const unsigned char *orig) {
 const unsigned char *h_gl_get_string(unsigned name) {
     if (!o_gl) resolve_gl();
     const unsigned char *r = o_gl ? o_gl(name) : nullptr;
-    if (!r) return r;  // no current context
+    if (!r) return r;
     switch (name) {
         case 0x1F00: if (g_p.gl_vendor[0]) return (const unsigned char *)g_p.gl_vendor; break;
         case 0x1F01: if (g_p.gl_renderer[0]) return (const unsigned char *)g_p.gl_renderer; break;
@@ -118,13 +115,12 @@ void *h_egl_gpa(const char *name) {
     return o_egl_gpa ? o_egl_gpa(name) : nullptr;
 }
 
-// ---------------------------------------------------------------- Vulkan
-struct VkPropsHead {  // leading part of VkPhysicalDeviceProperties
+struct VkPropsHead {
     uint32_t apiVersion, driverVersion, vendorID, deviceID;
     int32_t deviceType;
     char deviceName[256];
 };
-struct VkProps2Head {  // VkPhysicalDeviceProperties2
+struct VkProps2Head {
     int32_t sType;
     void *pNext;
     VkPropsHead properties;
@@ -177,13 +173,10 @@ void *h_vk_gipa(void *inst, const char *name) {
     return r;
 }
 
-// ---------------------------------------------------------------- dlopen / dlsym
-// Replacing dlopen/dlsym would change the "caller" bionic uses to pick the linker
-// namespace, so forward through the loader entry points with the real caller address.
 __attribute__((noinline)) void *h_dlopen(const char *file, int flags) {
     const void *caller = __builtin_return_address(0);
     void *r = l_dlopen ? l_dlopen(file, flags, caller) : real_dlopen(file, flags);
-    if (r) got_hook_apply();  // new library => patch its imports too
+    if (r) got_hook_apply();
     return r;
 }
 
@@ -213,7 +206,6 @@ __attribute__((noinline)) void *h_dlsym(void *handle, const char *sym) {
     return r;
 }
 
-// ---------------------------------------------------------------- Java android.os.Build
 void set_static_string(JNIEnv *env, jclass cls, const char *field, const char *value) {
     if (!value || !value[0]) return;
     jfieldID f = env->GetStaticFieldID(cls, field, "Ljava/lang/String;");
@@ -235,7 +227,7 @@ void spoof_java(JNIEnv *env) {
     set_static_string(env, c, "PRODUCT", g_p.b_product);
     set_static_string(env, c, "BOARD", g_p.b_board);
     set_static_string(env, c, "HARDWARE", g_p.b_hardware);
-    set_static_string(env, c, "SOC_MODEL", g_p.b_soc_model);          // API 31+, ignored if absent
+    set_static_string(env, c, "SOC_MODEL", g_p.b_soc_model);
     set_static_string(env, c, "SOC_MANUFACTURER", g_p.b_soc_manufacturer);
     env->DeleteLocalRef(c);
 }
@@ -244,7 +236,7 @@ GotHook g_table[16];
 size_t g_table_n = 0;
 void add(const char *name, void *fn, int scope = 0) { g_table[g_table_n++] = {name, fn, scope}; }
 
-}  // namespace
+}
 
 void spoof_install(const Profile &p, JNIEnv *env) {
     g_p = p;
@@ -281,7 +273,6 @@ void spoof_install(const Profile &p, JNIEnv *env) {
     add("dlopen", (void *)h_dlopen, 1);
     add("android_dlopen_ext", (void *)h_dlopen_ext, 1);
 
-    // Safety net: if our own imports were ever redirected, hooking again would recurse forever.
     if (real_dlsym == (dlsym_fn)h_dlsym || real_dlopen == (dlopen_fn)h_dlopen) {
         LOGI("self-hook detected, aborting install");
         return;

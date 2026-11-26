@@ -48,8 +48,7 @@ const DIR='/data/adb/unigl', RX_PKG=/^[A-Za-z0-9._]+$/, RX_NAME=/^[A-Za-z0-9_-]+
 const DEVICES=[['honor-magic9-pro-max','HONOR Magic9 Pro Max'],['redmagic-11-pro','RedMagic 11 Pro'],['poco-f9-ultra','POCO F9 Ultra'],['iqoo-15','iQOO 15'],['oneplus-15','OnePlus 15'],['xiaomi-17-ultra','Xiaomi 17 Ultra'],['poco-f8-ultra','POCO F8 Ultra'],['oppo-find-x9-ultra','OPPO Find X9 Ultra'],['galaxy-s26-ultra','Samsung S26 Ultra']];
 const BUILTIN=[];DEVICES.forEach(([s,l])=>{BUILTIN.push([s+'-full',l+' (Full)']);BUILTIN.push([s+'-minimal',l+' (Minimal)']);});
 const BUILTIN_IDS=new Set(BUILTIN.map(b=>b[0]));
-const BLANK=`# Empty value = leave the real value untouched. Lines starting with # are comments.
-gl_vendor=
+const BLANK=`gl_vendor=
 gl_renderer=
 gl_version=
 gl_extensions_append=
@@ -102,7 +101,7 @@ function openSpecs(id){renderSpecSelect(id);$('specscard').scrollIntoView({behav
 $('specsel').onchange=()=>showSpecs($('specsel').value);
 function parseTargets(t){return t.split('\n').map(l=>l.trim()).filter(l=>l&&l[0]!=='#'&&l.includes('=')).map(l=>{const i=l.indexOf('=');return[l.slice(0,i).trim(),l.slice(i+1).trim()]});}
 async function saveTargets(){
-  const body='# package=profile\n'+targets.map(([k,v])=>`${k}=${v}`).join('\n')+'\n';
+  const body=targets.map(([k,v])=>`${k}=${v}`).join('\n')+(targets.length?'\n':'');
   const r=await writeFile(DIR+'/targets.conf',body);toast(r.errno?'Save failed':'Saved');}
 function profileOptions(sel){
   let h=BUILTIN.map(([id,l])=>`<option value="${id}"${id===sel?' selected':''}>${esc(l)}</option>`).join('');

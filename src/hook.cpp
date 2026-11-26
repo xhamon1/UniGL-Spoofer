@@ -66,7 +66,7 @@ void scan_relocs(uintptr_t base, const Elf64_Rela *rel, size_t bytes, const Elf6
     size_t n = bytes / sizeof(Elf64_Rela);
     for (size_t i = 0; i < n; ++i) {
         unsigned type = ELF64_R_TYPE(rel[i].r_info);
-        if (type != kJumpSlot && type != kGlobDat) continue;  // data (ABS64) relocations are left alone
+        if (type != kJumpSlot && type != kGlobDat) continue;
         uint32_t si = ELF64_R_SYM(rel[i].r_info);
         if (!si || symtab[si].st_shndx != SHN_UNDEF) continue;
         const char *nm = strtab + symtab[si].st_name;
@@ -81,7 +81,7 @@ void scan_relocs(uintptr_t base, const Elf64_Rela *rel, size_t bytes, const Elf6
 }
 
 bool is_app_lib(const char *n) {
-    if (!strncmp(n, "/data/adb/", 10)) return false;  // module / root framework libraries
+    if (!strncmp(n, "/data/adb/", 10)) return false;
     return !strncmp(n, "/data/app/", 10) || !strncmp(n, "/data/data/", 11) || !strncmp(n, "/data/user/", 11) ||
            strstr(n, "!/lib/") != nullptr;
 }
@@ -90,8 +90,6 @@ int phdr_cb(dl_phdr_info *info, size_t, void *) {
     uintptr_t base = info->dlpi_addr;
     const char *name = info->dlpi_name ? info->dlpi_name : "";
 
-    // Never patch this module itself (that would make our own calls to the real dlsym/dlopen
-    // jump back into our wrappers => infinite recursion). Detect it by address range.
     for (int i = 0; i < info->dlpi_phnum; ++i) {
         const ElfW(Phdr) &ph = info->dlpi_phdr[i];
         if (ph.p_type != PT_LOAD) continue;
@@ -127,7 +125,7 @@ int phdr_cb(dl_phdr_info *info, size_t, void *) {
         }
     }
     if (!strtab || !symtab) return 0;
-    // some linkers already relocate these pointers, some do not
+
     auto fix = [base](uintptr_t p) { return p >= base ? p : base + p; };
     const char *str = (const char *)fix(strtab);
     const Elf64_Sym *sym = (const Elf64_Sym *)fix(symtab);
@@ -136,7 +134,7 @@ int phdr_cb(dl_phdr_info *info, size_t, void *) {
     return 0;
 }
 
-} // namespace
+}
 
 void got_hook_init(const GotHook *hooks, size_t count, void *self_addr) {
     g_hooks = hooks;

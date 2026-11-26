@@ -2,12 +2,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// Everything the module can fake for one target app. Empty string / false = leave untouched.
 struct Profile {
     char gl_vendor[128];
     char gl_renderer[128];
     char gl_version[192];
-    char gl_ext_append[2048];   // space separated extensions appended to GL_EXTENSIONS
+    char gl_ext_append[2048];
 
     char vk_device_name[256];
     uint32_t vk_vendor_id, vk_device_id, vk_driver_version;
